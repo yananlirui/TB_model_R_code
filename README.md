@@ -132,14 +132,12 @@ existing results somewhere safe, or choose a seed without a matching saved RDS.
 - **Excel:** a dated workbook with seven sheets: `Table1`, `Table11`,
   `Table12_Best`, `Table13_Worst`, `Calibration_diagnostics`, `CEA_baseline`
   and `PSA_cea_final`.
-- **Main figures:** `Fig1_Projected_health_outcomes.png`, `Fig2_CEA_panel.png`
-  and `Fig3_CEAC.png`.
-- **Supplementary Figure 2:** observed rifampicin-resistant TB proportions and
-  the fitted temporal trend, saved as
-  `Supplementary_Fig2_rifampicin_resistance.png` (section **0.4.4**).
-- **Supplementary figures 3–9:** MCMC traces, autocorrelation, posterior
-  distributions, calibration fit, hospital/visit coverage relationships,
-  loss-to-follow-up sensitivity analyses and one-way sensitivity analyses.
+- **Figures:** main Figures 1–3 show projected health outcomes, the
+  cost-effectiveness plane and cost-effectiveness acceptability curves.
+  Supplementary Figures 2–9 show the rifampicin-resistance trend, MCMC traces,
+  autocorrelation, posterior distributions, calibration fit, hospital/visit
+  coverage relationships, loss-to-follow-up sensitivity analyses and one-way
+  sensitivity analyses.
 
 Section **0.4.4** contains the resistance-trend fit and Supplementary Figure 2.
 Set `verify_resistance = TRUE` to rerun the `nlminb` fit and generate
