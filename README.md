@@ -103,9 +103,11 @@ can take many hours; elapsed time depends on the hardware and available resource
 
 ## Saved results and fresh runs
 
-Saved RDS results are available from the
-[GitHub Releases page](https://github.com/yananlirui/TB_model_R_code/releases).
-Place the downloaded RDS file in `output/` to regenerate tables and figures.
+**[Download the saved RDS results](https://github.com/yananlirui/TB_model_R_code/releases/download/v1.0.0/TB_results_seed2026_20261109.rds)**
+(`TB_results_seed2026_20261109.rds`, approximately 295 MB).
+The file is distributed as a Release attachment and does not appear in the
+repository's `output/` file list. Place the downloaded RDS file in `output/`
+to regenerate tables and figures.
 
 The script selects the latest dated file matching the current seed:
 
@@ -125,11 +127,16 @@ existing results somewhere safe, or choose a seed without a matching saved RDS.
 
 - **RDS:** five calibration results and three complete analyses, with diagnostics,
   posterior samples, model predictions and cost-effectiveness outputs.
+  [Download the RDS file](https://github.com/yananlirui/TB_model_R_code/releases/download/v1.0.0/TB_results_seed2026_20261109.rds)
+  and save it in `output/`.
 - **Excel:** a dated workbook with seven sheets: `Table1`, `Table11`,
   `Table12_Best`, `Table13_Worst`, `Calibration_diagnostics`, `CEA_baseline`
   and `PSA_cea_final`.
 - **Main figures:** `Fig1_Projected_health_outcomes.png`, `Fig2_CEA_panel.png`
   and `Fig3_CEAC.png`.
+- **Supplementary Figure 2:** observed rifampicin-resistant TB proportions and
+  the fitted temporal trend, saved as
+  `Supplementary_Fig2_rifampicin_resistance.png` (section **0.4.4**).
 - **Supplementary figures 3–9:** MCMC traces, autocorrelation, posterior
   distributions, calibration fit, hospital/visit coverage relationships,
   loss-to-follow-up sensitivity analyses and one-way sensitivity analyses.
