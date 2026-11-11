@@ -3000,8 +3000,15 @@ parameter_legend_layout <- function(
     figure_text_theme &
     ggplot2::theme(
       legend.position  = "bottom",
-      legend.direction = "horizontal"
-    )
+      legend.direction = "horizontal",
+      legend.text      = ggplot2::element_text(size = 18),
+      legend.key.width = grid::unit(1.2, "cm"),
+      legend.key.height = grid::unit(0.7, "cm")
+    ) &
+    ggplot2::guides(colour = ggplot2::guide_legend(
+      nrow = 2, byrow = TRUE,
+      override.aes = list(linewidth = 1.5, alpha = 1)
+    ))
 }
 
 p_autocorrelation <- parameter_legend_layout(
