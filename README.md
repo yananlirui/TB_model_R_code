@@ -54,7 +54,7 @@ Linux servers also need a working headless graphics device, such as Cairo.
 ## Running the script
 
 **Before running, [download the saved RDS results](https://github.com/yananlirui/TB_model_R_code/releases/download/v1.0.0/TB_results_seed2026_20261109.rds)
-and place the file in `output/`.** At approximately 295 MB, the RDS file exceeds
+and place the file in `output/`.** At approximately 300 MB, the RDS file exceeds
 GitHub's regular repository file-size limit and is provided as a Release
 attachment instead. If complete saved results are not found, the script reruns
 the calibration and analyses, which can take several days. Downloading the RDS
@@ -111,7 +111,7 @@ can take several days; elapsed time depends on the hardware and available resour
 ## Saved results and fresh runs
 
 **[Download the saved RDS results](https://github.com/yananlirui/TB_model_R_code/releases/download/v1.0.0/TB_results_seed2026_20261109.rds)**
-(`TB_results_seed2026_20261109.rds`, approximately 295 MB).
+(`TB_results_seed2026_20261109.rds`, approximately 300 MB).
 The file is distributed as a Release attachment and does not appear in the
 repository's `output/` file list. Place the downloaded RDS file in `output/`
 to regenerate tables and figures.
