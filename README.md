@@ -95,6 +95,11 @@ The full workflow contains:
    analysis and probabilistic sensitivity analyses. The 50% and 100% IGRA
    calibrations also provide baseline cost-effectiveness comparisons.
 
+Section **2.1** runs all five calibrations within a shared CPU budget, concurrently
+when sufficient cores are available and in smaller batches or serially otherwise.
+Sections **2.2–2.3** use these fitted results for the three complete analyses;
+the best and worst analyses do not repeat calibration.
+
 Probabilistic sensitivity analyses use a general-hospital referral
 loss-to-follow-up probability of 0.75 in the primary setting and 0.60, 0.45,
 0.30 or 0.15 in alternative scenarios.

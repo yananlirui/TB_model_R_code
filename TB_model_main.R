@@ -1580,23 +1580,28 @@ run_calibration <- function(p_igra_e, base_par, calib_settings,
   )
   result
 }
-# Calibrate IGRA assumptions concurrently within one shared worker budget.
+# Calibrate IGRA and care assumptions within one shared worker budget.
 # Each MCMC job needs nchains workers plus one coordinating R process.
 calibrate_scenarios <- function(scenarios, base_par, calib_settings,
                                 worker_budget = parallel_workers) {
   if (!length(scenarios)) return(list())
+  jobs <- lapply(as.character(scenarios), function(key) {
+    care <- key %in% c("best", "worst")
+    list(p = if (care) 0 else as.numeric(key),
+         assumption = if (care) key else "basecase")
+  })
   concurrent <- min(length(scenarios), max(1L, floor(
     worker_budget / (calib_settings$nchains + 1L)
   )))
   if (concurrent == 1L) {
-    return(setNames(lapply(scenarios, function(value) {
-      run_calibration(value, base_par, calib_settings)
+    return(setNames(lapply(jobs, function(job) {
+      run_calibration(job$p, base_par, calib_settings, job$assumption)
     }), as.character(scenarios)))
   }
   workers_each <- max(calib_settings$nchains,
                       floor(worker_budget / concurrent) - 1L)
   message(
-    "Calibrating ", length(scenarios), " IGRA assumptions with ", concurrent,
+    "Calibrating ", length(scenarios), " assumptions with ", concurrent,
     " concurrent jobs and ", workers_each, " workers per job."
   )
   cl <- parallel::makeCluster(concurrent, outfile = "")
@@ -1612,8 +1617,8 @@ calibrate_scenarios <- function(scenarios, base_par, calib_settings,
     NULL
   }, workers_each)
   results <- parallel::parLapply(
-    cl, scenarios, function(value, known, controls) {
-      run_calibration(value, known, controls)
+    cl, jobs, function(job, known, controls) {
+      run_calibration(job$p, known, controls, job$assumption)
     }, known = base_par, controls = calib_settings
   )
   setNames(results, as.character(scenarios))
@@ -2068,17 +2073,32 @@ run_analysis <- function(calibration, base_par, par_ranges,
 
 }
 
-# Each care assumption has its own posterior and complete analysis.
-run_care_scenarios <- function(cases, base_par, par_ranges, calib_settings,
+# Analyse care assumptions using the calibrations completed in S2.1.
+run_care_scenarios <- function(calibrations, base_par, par_ranges,
                                worker_budget = parallel_workers) {
   checkpoint_dir <- file.path(save_dir, "process", "care_checkpoints")
   dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
+  cases <- names(calibrations)
   concurrent <- min(length(cases), max(1L, worker_budget %/% 2L))
-  workers_each <- max(1L, worker_budget %/% concurrent - 1L)
+  workers_each <- if (concurrent == 1L) {
+    worker_budget
+  } else max(1L, worker_budget %/% concurrent - 1L)
+  analyse <- function(assumption, calibration) {
+    message("Starting care analysis: ", assumption)
+    analysis <- run_analysis(calibration, base_par, par_ranges, assumption)
+    result <- list(calibration = calibration, analysis = analysis)
+    saveRDS(result, file.path(checkpoint_dir, paste0(assumption, ".rds")))
+    result
+  }
+  if (concurrent == 1L) {
+    return(setNames(lapply(cases, function(case) {
+      analyse(case, calibrations[[case]])
+    }), cases))
+  }
   cl <- parallel::makeCluster(concurrent, outfile = "")
   on.exit(parallel::stopCluster(cl), add = TRUE)
   parallel::clusterExport(cl, c(
-    "run_calibration", "initialize_population",
+    "initialize_population",
     "tb_model", "resistance_prop", "run_cea", "run_analysis", "run_usa",
     "run_psa", "sample_known_par", "settings"
   ), envir = environment())
@@ -2087,17 +2107,17 @@ run_care_scenarios <- function(cases, base_par, par_ranges, calib_settings,
     set.seed(settings$seed)
     NULL
   }, workers_each)
-  results <- parallel::parLapply(cl, cases, function(assumption, base, ranges,
-                                                   controls, checkpoint) {
-    message("Starting care assumption: ", assumption)
-    calibration <- run_calibration(0, base, controls, assumption)
+  results <- parallel::parLapply(cl, cases, function(assumption, fits, base,
+                                                   ranges, checkpoint) {
+    message("Starting care analysis: ", assumption)
+    calibration <- fits[[assumption]]
     path <- file.path(checkpoint, paste0(assumption, ".rds"))
     saveRDS(list(calibration = calibration, analysis = NULL), path)
     analysis <- run_analysis(calibration, base, ranges, assumption)
     result <- list(calibration = calibration, analysis = analysis)
     saveRDS(result, path)
     result
-  }, base = base_par, ranges = par_ranges, controls = calib_settings,
+  }, fits = calibrations, base = base_par, ranges = par_ranges,
      checkpoint = checkpoint_dir)
   setNames(results, cases)
 }
@@ -2106,7 +2126,7 @@ run_care_scenarios <- function(cases, base_par, par_ranges, calib_settings,
 # S2. Model calibration and main analysis
 # ==============================================================================
 # ------------------------------------------------------------------------------
-# 2.1 Model calibration and comparison of IGRA assumptions
+# 2.1 Five calibrations: IGRA and care-engagement assumptions
 # ------------------------------------------------------------------------------
 if (run_all) {
   if (!is.null(model_results$calibration) || !is.null(model_results$analysis)) {
@@ -2128,9 +2148,28 @@ if (run_all) {
       character(1)
     )
   )
-  calibration_results <- calibrate_scenarios(
-    igra_scenarios, base_par, settings$calib
+  all_calibrations <- calibrate_scenarios(
+    c(as.character(igra_scenarios), "best", "worst"),
+    base_par, settings$calib
   )
+  calibration_results <- all_calibrations[as.character(igra_scenarios)]
+  model_results$care <- lapply(
+    all_calibrations[c("best", "worst")], function(result) {
+      list(calibration = result, analysis = NULL)
+    }
+  )
+} else {
+  missing_care <- c("best", "worst")[vapply(c("best", "worst"),
+    function(case) is.null(model_results$care[[case]]$calibration), logical(1))]
+  if (length(missing_care)) {
+    care_calibrations <- calibrate_scenarios(
+      missing_care, base_par, settings$calib
+    )
+    model_results$care[missing_care] <- lapply(care_calibrations,
+      function(result) list(calibration = result, analysis = NULL))
+    model_results$saved_at <- Sys.time()
+    saveRDS(model_results, results_file)
+  }
 }
 
 for (p_igra_e in igra_scenarios) {
@@ -2284,17 +2323,16 @@ if (run_all) {
 }
 
 # ------------------------------------------------------------------------------
-# 2.3 Calibrate and analyse best and worst care-engagement assumptions
+# 2.3 Analyse best and worst care-engagement assumptions
 # ------------------------------------------------------------------------------
-if (run_all) model_results$care <- NULL
 care_cases <- c("best", "worst")
 missing_care <- care_cases[vapply(care_cases, function(case) {
-  is.null(model_results$care[[case]]$calibration) ||
-    is.null(model_results$care[[case]]$analysis)
+  is.null(model_results$care[[case]]$analysis)
 }, logical(1))]
 if (length(missing_care)) {
   care_results <- run_care_scenarios(
-    missing_care, base_par, par_ranges, settings$calib
+    lapply(model_results$care[missing_care], `[[`, "calibration"),
+    base_par, par_ranges
   )
   model_results$care[missing_care] <- care_results
   model_results$saved_at <- Sys.time()
