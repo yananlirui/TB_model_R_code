@@ -71,8 +71,8 @@ directory. Close the output Excel workbook before regenerating it.
 
 ## Settings and workflow
 
-Section **0.3** defines the seed, study periods, MCMC controls and calibration
-plotting option. Defaults are seed **2026**, four chains of **250,000** iterations,
+Section **0.3** defines the seed, study periods and MCMC controls.
+Defaults are seed **2026**, four chains of **250,000** iterations,
 50% burn-in and retention of every 50th post-burn-in draw for simulations. This
 yields 10,000 joint posterior parameter sets per calibration. Parameter summaries
 and convergence diagnostics use all retained post-burn-in draws before thinning.
@@ -134,10 +134,11 @@ existing results somewhere safe, or choose a seed without a matching saved RDS.
   distributions, calibration fit, hospital/visit coverage relationships,
   loss-to-follow-up sensitivity analyses and one-way sensitivity analyses.
 
-Set `plot_calib = FALSE` to skip the calibration diagnostic figures. Set
-`verify_resistance = TRUE` to rerun the `nlminb` resistance-trend fit and generate
-`Supplementary_Fig2_rifampicin_resistance.png`. Set `verify_environment = TRUE`
-to print the R and package versions. These switches are defined in the script.
+Section **0.4.4** contains the resistance-trend fit and Supplementary Figure 2.
+Set `verify_resistance = TRUE` to rerun the `nlminb` fit and generate
+`Supplementary_Fig2_rifampicin_resistance.png`.
+Section **3.2** generates Supplementary Figures 3–6 directly.
+Set `verify_environment = TRUE` to print the R and package versions.
 
 Table 1 and its best/worst counterparts use deterministic baseline point estimates
 for costs, DALYs and cost-effectiveness outcomes. Other point estimates and all

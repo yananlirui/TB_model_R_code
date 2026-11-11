@@ -132,14 +132,13 @@ if (!dir.exists(save_dir)) {
 # ------------------------------------------------------------------------------
 # 0.3 Analysis settings and result loading
 # ------------------------------------------------------------------------------
-# Set the seed, study periods, calibration controls and plotting option.
+# Set the seed, study periods and calibration controls.
 settings <- list(
   seed       = 2026L,
   years      = 2000:2035,
   pred_years = 2015:2035,
   eval_years = 2026:2035,
-  calib      = list(nchains = 4L, niter = 250000L),
-  plot_calib = TRUE
+  calib      = list(nchains = 4L, niter = 250000L)
 )
 igra_scenarios <- c(0, 0.5, 1)
 
@@ -339,7 +338,7 @@ sample_known_par <- function(base_par, par_ranges,
   as.data.frame(samples)
 }
 
-# ---- 0.4.4 Rifampicin resistance trend ----
+# ---- 0.4.4 Rifampicin resistance trend: Supplementary Figure 2 ----
 # Three-parameter exponential trend fitted with R nlminb.
 resistance_prop <- function(year) {
   3.722206 * exp(-0.000594817 * (year - 2000)) - 3.583639
@@ -2731,482 +2730,276 @@ writexl::write_xlsx(
 message("Saved: ", results_excel)
 
 # ------------------------------------------------------------------------------
-# 3.2 Generate calibration figures
+# 3.2 Generate calibration figures: Supplementary Figures 3-6
 # ------------------------------------------------------------------------------
 
-if (settings$plot_calib) {
-  autocorrelation_data <- tb_calibration_results$autocorrelation_plot_data
-  if (is.null(autocorrelation_data)) {
-    stop("The calibration results are missing cached autocorrelation data.")
-  }
-
-  parnames     <- colnames(mcmc_chains[[1]]$pars)
-  nchains      <- length(mcmc_chains)
-  chain_labels <- paste("Chain", seq_len(nchains))
-  chain_colors <- setNames(
-    grDevices::colorRampPalette(
-      c("#2878B5", "#D9534F", "#39A77D", "#9467BD")
-    )(nchains),
-    chain_labels
-  )
-
-  # Shared plotting styles.
-  diagnostic_theme <- ggplot2::theme_bw(base_size = 12) +
-    ggplot2::theme(
-      legend.position  = "bottom",
-      panel.grid.minor = ggplot2::element_blank()
-    )
-
-  figure_text_theme <- ggplot2::theme(
-    text         = ggplot2::element_text(size = 16),
-    axis.title   = ggplot2::element_text(size = 14),
-    axis.text    = ggplot2::element_text(size = 11),
-    strip.text   = ggplot2::element_text(size = 14),
-    plot.title   = ggplot2::element_text(size = 16, hjust = 0),
-    plot.caption = ggplot2::element_text(size = 12),
-    legend.title = ggplot2::element_text(size = 14),
-    legend.text  = ggplot2::element_text(size = 14),
-    plot.margin  = ggplot2::margin(10, 18, 14, 12, unit = "pt")
-  )
-
-  # ESS combines information from all four chains.
-  ess_labels <- data.frame(
-    Parameter = parnames,
-    Label     = paste0(
-      "ESS = ",
-      formatC(
-        unname(tb_calibration_results$A3_effective_size[parnames]),
-        format = "f", digits = 0, big.mark = ","
-      )
-    )
-  )
-
-  # Autocorrelation plots.
-  message("Preparing autocorrelation plots from saved data...")
-
-  autocorrelation_data$Parameter <- factor(
-    autocorrelation_data$Parameter,
-    levels = parnames
-  )
-  autocorrelation_data$Chain <- factor(
-    autocorrelation_data$Chain,
-    levels = chain_labels
-  )
-
-  max_lag <- max(autocorrelation_data$Lag, na.rm = TRUE)
-
-  p_autocorrelation <- ggplot2::ggplot(
-    autocorrelation_data,
-    ggplot2::aes(Lag, ACF, colour = Chain)
-  ) +
-    ggplot2::geom_hline(
-      yintercept = 0, colour = "grey60", linewidth = 0.3
-    ) +
-    ggplot2::geom_line(linewidth = 0.6, na.rm = TRUE) +
-    ggplot2::scale_colour_manual(
-      values = chain_colors, breaks = chain_labels
-    ) +
-    ggplot2::scale_x_continuous(
-      breaks = c(0, max_lag / 2, max_lag),
-      expand = ggplot2::expansion(mult = c(0.02, 0.08))
-    ) +
-    ggplot2::scale_y_continuous(
-      breaks = c(0, 0.5, 1),
-      expand = ggplot2::expansion(mult = c(0, 0.02))
-    ) +
-    ggplot2::coord_cartesian(ylim = c(0, 1)) +
-    ggplot2::labs(
-      x = "Lag", y = "Autocorrelation", colour = NULL
-    ) +
-    diagnostic_theme
-
-  # Trace plots and posterior distributions.
-  message("Preparing parameter traces and distributions...")
-
-  trace_data <- do.call(rbind, lapply(seq_len(nchains), function(j) {
-    draws <- as.matrix(mcmc_chains[[j]]$pars)
-
-    data.frame(
-      Iteration = rep(seq_len(nrow(draws)), times = ncol(draws)),
-      Value     = as.vector(draws),
-      Parameter = rep(colnames(draws), each = nrow(draws)),
-      Chain     = chain_labels[j]
-    )
-  }))
-
-  trace_data$Parameter <- factor(
-    trace_data$Parameter,
-    levels = parnames
-  )
-  trace_data$Chain <- factor(
-    trace_data$Chain,
-    levels = chain_labels
-  )
-
-  p_trace <- ggplot2::ggplot(
-    trace_data, ggplot2::aes(Iteration, Value, colour = Chain)
-  ) +
-    ggplot2::geom_line(linewidth = 0.25, alpha = 0.65) +
-    ggplot2::scale_colour_manual(
-      values = chain_colors, breaks = chain_labels
-    ) +
-    ggplot2::scale_x_continuous(
-      breaks = scales::breaks_pretty(n = 3),
-      labels = function(x) {
-        format(
-          x,
-          scientific = FALSE, trim = TRUE, big.mark = ","
-        )
-      },
-      expand = ggplot2::expansion(mult = c(0.02, 0.08))
-    ) +
-    ggplot2::labs(
-      x = "Iteration", y = "Parameter value", colour = NULL
-    ) +
-    diagnostic_theme
-
-  # Use the same 10,000 posterior draws as subsequent simulations.
-  posterior_data <- data.frame(
-    Value     = as.vector(as.matrix(chain_posts)),
-    Parameter = factor(
-      rep(colnames(chain_posts), each = nrow(chain_posts)),
-      levels = parnames
-    )
-  )
-  p_distribution <- ggplot2::ggplot(
-    posterior_data, ggplot2::aes(Value)
-  ) +
-    ggplot2::geom_histogram(
-      bins = 40, fill = "#A9CCE3", colour = "white", linewidth = 0.2
-    ) +
-    ggplot2::facet_wrap(~Parameter, scales = "free", ncol = 4) +
-    ggplot2::labs(
-      x     = "Parameter value", y = "Frequency",
-      title = "Marginal posterior parameter distributions"
-    ) +
-    diagnostic_theme
-
-  # Arrange parameter panels and place the legend in the spare cells.
-  parameter_legend_layout <- function(
-    plot, plot_data, plot_title, show_ess = FALSE
-  ) {
-    n_parameters <- length(parnames)
-    n_columns    <- 4L
-
-    panels <- lapply(seq_along(parnames), function(i) {
-      parameter <- parnames[i]
-
-      panel_data <- plot_data[
-        as.character(plot_data$Parameter) == parameter, ,
-        drop = FALSE
-      ]
-
-      # Show axis titles only on the left and bottom exposed panels.
-      left_column  <- (i - 1L) %% n_columns == 0L
-      bottom_panel <- i + n_columns > n_parameters
-
-      panel <- (plot + panel_data) +
-        ggplot2::labs(
-          title = parameter,
-          x     = if (bottom_panel) {
-            if (show_ess) "Lag" else "Iteration"
-          } else {
-            NULL
-          },
-          y = if (left_column) {
-            if (show_ess) "Autocorrelation" else "Parameter value"
-          } else {
-            NULL
-          }
-        )
-
-      if (show_ess) {
-        panel <- panel +
-          ggplot2::geom_text(
-            data = ess_labels[
-              ess_labels$Parameter == parameter, ,
-              drop = FALSE
-            ],
-            ggplot2::aes(label = Label),
-            x     = Inf, y = Inf,
-            hjust = 1.08, vjust = 1.3,
-            size  = 6,
-            inherit.aes = FALSE
-          )
-      }
-
-      panel
-    })
-
-    n_cells     <- ceiling((n_parameters + 1L) / n_columns) * n_columns
-    panel_codes <- c(
-      LETTERS[seq_len(n_parameters)],
-      rep(LETTERS[n_parameters + 1L], n_cells - n_parameters)
-    )
-
-    design <- paste(
-      vapply(seq.int(1L, n_cells, by = n_columns), function(i) {
-        paste0(
-          panel_codes[i:(i + n_columns - 1L)],
-          collapse = ""
-        )
-      }, character(1)),
-      collapse = "\n"
-    )
-
-    combined <- patchwork::wrap_plots(
-      c(panels, list(patchwork::guide_area())),
-      design = design,
-      guides = "collect"
-    ) +
-      patchwork::plot_annotation(title = plot_title)
-
-    combined &
-      figure_text_theme &
-      ggplot2::theme(
-        legend.position  = "bottom",
-        legend.direction = "horizontal"
-      )
-  }
-
-  p_autocorrelation <- parameter_legend_layout(
-    p_autocorrelation,
-    autocorrelation_data,
-    "Autocorrelation of posterior parameter samples",
-    show_ess = TRUE
-  )
-
-  p_trace <- parameter_legend_layout(
-    p_trace,
-    trace_data,
-    "Trace plots for the MCMC chains"
-  )
-
-  p_distribution <- p_distribution + figure_text_theme
-
-  # Save the three diagnostic figures.
-  calibration_figures <- list(
-    Supplementary_Fig3_MCMC_trace                            = p_trace,
-    Supplementary_Fig4_MCMC_autocorrelation = p_autocorrelation,
-    Supplementary_Fig5_calibrated_parameter_posteriors       = p_distribution
-  )
-
-  for (figure_name in names(calibration_figures)) {
-    figure <- calibration_figures[[figure_name]]
-    message("Rendering and saving: ", figure_name)
-
-    print(figure)
-
-    filename <- paste0(figure_name, ".png")
-
-    ggplot2::ggsave(
-      filename = file.path(save_dir, filename),
-      plot     = figure,
-      width    = 14,
-      height   = 16,
-      units    = "in",
-      dpi      = 300,
-      bg       = "white"
-    )
-
-    message("Saved: ", filename)
-  }
+autocorrelation_data <- tb_calibration_results$autocorrelation_plot_data
+if (is.null(autocorrelation_data)) {
+  stop("The calibration results are missing cached autocorrelation data.")
 }
 
-if (settings$plot_calib) {
-  model_data <- tb_calibration_results$calibration_plot_data
-  model_data$Indicator <- sub(
-    "Mean system delay", "Mean health system delay", model_data$Indicator
-  )
-  if (is.null(model_data)) {
-    stop("The calibration results are missing cached model predictions.")
-  }
+parnames     <- colnames(mcmc_chains[[1]]$pars)
+nchains      <- length(mcmc_chains)
+chain_labels <- paste("Chain", seq_len(nchains))
+chain_colors <- setNames(
+  grDevices::colorRampPalette(
+    c("#2878B5", "#D9534F", "#39A77D", "#9467BD")
+  )(nchains),
+  chain_labels
+)
 
-  target_names <- c(
-    "L1: TB notifications",
-    "L2: Reported TB mortality",
-    "L3: IGRA positivity, age 5+",
-    "L4: Active TB prevalence, age 15+",
-    "L5: Subclinical TB proportion",
-    "L6: Mean health system delay",
-    "L7: Smear-positive TB proportion",
-    "L8: Active case-finding proportion"
-  )
-  target_units <- c(
-    "Rate per 100,000",
-    "Rate per 100,000",
-    "Proportion (%)",
-    "Prevalence per 100,000",
-    "Proportion (%)",
-    "Days",
-    "Proportion (%)",
-    "Proportion (%)"
+# Shared plotting styles.
+diagnostic_theme <- ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(
+    legend.position  = "bottom",
+    panel.grid.minor = ggplot2::element_blank()
   )
 
-  if (!all(target_names %in% model_data$Indicator)) {
-    stop("Saved model indicator names do not match the plotting labels.")
-  }
+figure_text_theme <- ggplot2::theme(
+  text         = ggplot2::element_text(size = 16),
+  axis.title   = ggplot2::element_text(size = 14),
+  axis.text    = ggplot2::element_text(size = 11),
+  strip.text   = ggplot2::element_text(size = 14),
+  plot.title   = ggplot2::element_text(size = 16, hjust = 0),
+  plot.caption = ggplot2::element_text(size = 12),
+  legend.title = ggplot2::element_text(size = 14),
+  legend.text  = ggplot2::element_text(size = 14),
+  plot.margin  = ggplot2::margin(10, 18, 14, 12, unit = "pt")
+)
 
-  # L1: assumed normal error intervals; L2: reported confidence intervals.
-  # L3/L4/L5/L7: exact binomial confidence intervals.
-  # L6: working normal interval for the inferred mean, not the reported IQR.
-
-  notice_obs <- c(
-    106.64, 105.12, 99.69, 89.14, 81.94, 75.97, 73.76, 69.43,
-    68.08, 65.10, 61.67, 60.74, 59.38, 55.57, 47.58
-  )
-  mortality_obs <- c(7.03, 7.13, 5.43, 5.04, 4.04, 4.33, 4.38)
-  mortality_lo  <- c(6.84, 6.93, 5.26, 4.88, 3.90, 4.19, 4.23)
-  mortality_hi  <- c(7.23, 7.32, 5.60, 5.20, 4.18, 4.48, 4.52)
-
-  # L8 is a working normal calibration target based on the national
-  # estimate that approximately 3% of notifications were actively detected.
-
-  acf_target <- 0.03
-  acf_sd     <- 0.0015
-
-  binomial_target <- function(indicator, years, counts, sizes, scale) {
-    intervals <- t(vapply(seq_along(counts), function(i) {
-      as.numeric(stats::binom.test(counts[i], sizes[i])$conf.int)
-    }, numeric(2)))
-
-    data.frame(
-      Year      = years,
-      Mean      = counts / sizes * scale,
-      Low       = intervals[, 1] * scale,
-      High      = intervals[, 2] * scale,
-      Indicator = indicator
-    )
-  }
-
-  target_data <- rbind(
-    data.frame(
-      Year      = 2006:2020, Mean = notice_obs,
-      Low       = notice_obs * (1 - 1.96 * 0.05),
-      High      = notice_obs * (1 + 1.96 * 0.05),
-      Indicator = target_names[1]
-    ),
-    data.frame(
-      Year      = 2004:2010, Mean = mortality_obs,
-      Low       = mortality_lo, High = mortality_hi,
-      Indicator = target_names[2]
-    ),
-    binomial_target(target_names[3], 2013, 3955, 21022, 100),
-    binomial_target(target_names[4], 2010, 1310, 252940, 1e5),
-    binomial_target(target_names[5], 2010, 561, 1301, 100),
-    data.frame(
-      Year      = 2019, Mean = 99.88,
-      Low       = 99.88 - 1.96 * 21.66,
-      High      = 99.88 + 1.96 * 21.66,
-      Indicator = target_names[6]
-    ),
-    binomial_target(
-      target_names[7], c(2000, 2010), c(447, 181), c(1340, 1310), 100
-    ),
-    data.frame(
-      Year      = 2023,
-      Mean      = acf_target * 100,
-      Low       = pmax(0, (acf_target - 1.96 * acf_sd) * 100),
-      High      = pmin(100, (acf_target + 1.96 * acf_sd) * 100),
-      Indicator = target_names[8]
+# ESS combines information from all four chains.
+ess_labels <- data.frame(
+  Parameter = parnames,
+  Label     = paste0(
+    "ESS = ",
+    formatC(
+      unname(tb_calibration_results$A3_effective_size[parnames]),
+      format = "f", digits = 0, big.mark = ","
     )
   )
+)
 
-  message("Preparing model-fit plots from saved predictions...")
-  calibration_panels <- lapply(seq_along(target_names), function(i) {
-    model    <- subset(model_data, Indicator == target_names[i])
-    observed <- subset(target_data, Indicator == target_names[i])
+# Autocorrelation plots.
+message("Preparing autocorrelation plots from saved data...")
 
-    ggplot2::ggplot() +
-      ggplot2::geom_ribbon(
-        data = model,
-        ggplot2::aes(Year, ymin = Low, ymax = High),
-        fill = "#2878B5", alpha = 0.18
-      ) +
-      ggplot2::geom_line(
-        data = model,
-        ggplot2::aes(
-          Year, Mean,
-          colour = "Model mean (95% uncertainty interval)"
-        ),
-        linewidth = 0.7
-      ) +
-      ggplot2::geom_errorbar(
-        data = observed,
-        ggplot2::aes(
-          Year,
-          ymin   = Low, ymax = High,
-          colour = "Calibration targets"
-        ),
-        width = 0.5, linewidth = 0.4
-      ) +
-      ggplot2::geom_point(
-        data = observed,
-        ggplot2::aes(
-          Year, Mean,
-          colour = "Calibration targets"
-        ),
-        size = 2
-      ) +
-      ggplot2::scale_colour_manual(values = c(
-        "Model mean (95% uncertainty interval)" = "#2878B5",
-        "Calibration targets" = "#D9534F"
-      )) +
-      ggplot2::scale_x_continuous(
-        breaks = seq(2000, 2025, 5), limits = c(2000, 2025)
-      ) +
-      ggplot2::scale_y_continuous(
-        limits = c(0, NA),
-        expand = ggplot2::expansion(mult = c(0, 0.05))
-      ) +
-      ggplot2::labs(
-        x     = "Year", y = target_units[i],
-        title = target_names[i], colour = NULL
-      ) +
-      ggplot2::theme_bw(base_size = 10) +
-      ggplot2::theme(
-        plot.title       = ggplot2::element_text(size = 10),
-        panel.grid.minor = ggplot2::element_blank()
+autocorrelation_data$Parameter <- factor(
+  autocorrelation_data$Parameter,
+  levels = parnames
+)
+autocorrelation_data$Chain <- factor(
+  autocorrelation_data$Chain,
+  levels = chain_labels
+)
+
+max_lag <- max(autocorrelation_data$Lag, na.rm = TRUE)
+
+p_autocorrelation <- ggplot2::ggplot(
+  autocorrelation_data,
+  ggplot2::aes(Lag, ACF, colour = Chain)
+) +
+  ggplot2::geom_hline(
+    yintercept = 0, colour = "grey60", linewidth = 0.3
+  ) +
+  ggplot2::geom_line(linewidth = 0.6, na.rm = TRUE) +
+  ggplot2::scale_colour_manual(
+    values = chain_colors, breaks = chain_labels
+  ) +
+  ggplot2::scale_x_continuous(
+    breaks = c(0, max_lag / 2, max_lag),
+    expand = ggplot2::expansion(mult = c(0.02, 0.08))
+  ) +
+  ggplot2::scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    expand = ggplot2::expansion(mult = c(0, 0.02))
+  ) +
+  ggplot2::coord_cartesian(ylim = c(0, 1)) +
+  ggplot2::labs(
+    x = "Lag", y = "Autocorrelation", colour = NULL
+  ) +
+  diagnostic_theme
+
+# Trace plots and posterior distributions.
+message("Preparing parameter traces and distributions...")
+
+trace_data <- do.call(rbind, lapply(seq_len(nchains), function(j) {
+  draws <- as.matrix(mcmc_chains[[j]]$pars)
+
+  data.frame(
+    Iteration = rep(seq_len(nrow(draws)), times = ncol(draws)),
+    Value     = as.vector(draws),
+    Parameter = rep(colnames(draws), each = nrow(draws)),
+    Chain     = chain_labels[j]
+  )
+}))
+
+trace_data$Parameter <- factor(
+  trace_data$Parameter,
+  levels = parnames
+)
+trace_data$Chain <- factor(
+  trace_data$Chain,
+  levels = chain_labels
+)
+
+p_trace <- ggplot2::ggplot(
+  trace_data, ggplot2::aes(Iteration, Value, colour = Chain)
+) +
+  ggplot2::geom_line(linewidth = 0.25, alpha = 0.65) +
+  ggplot2::scale_colour_manual(
+    values = chain_colors, breaks = chain_labels
+  ) +
+  ggplot2::scale_x_continuous(
+    breaks = scales::breaks_pretty(n = 3),
+    labels = function(x) {
+      format(
+        x,
+        scientific = FALSE, trim = TRUE, big.mark = ","
       )
+    },
+    expand = ggplot2::expansion(mult = c(0.02, 0.08))
+  ) +
+  ggplot2::labs(
+    x = "Iteration", y = "Parameter value", colour = NULL
+  ) +
+  diagnostic_theme
+
+# Use the same 10,000 posterior draws as subsequent simulations.
+posterior_data <- data.frame(
+  Value     = as.vector(as.matrix(chain_posts)),
+  Parameter = factor(
+    rep(colnames(chain_posts), each = nrow(chain_posts)),
+    levels = parnames
+  )
+)
+p_distribution <- ggplot2::ggplot(
+  posterior_data, ggplot2::aes(Value)
+) +
+  ggplot2::geom_histogram(
+    bins = 40, fill = "#A9CCE3", colour = "white", linewidth = 0.2
+  ) +
+  ggplot2::facet_wrap(~Parameter, scales = "free", ncol = 4) +
+  ggplot2::labs(
+    x     = "Parameter value", y = "Frequency",
+    title = "Marginal posterior parameter distributions"
+  ) +
+  diagnostic_theme
+
+# Arrange parameter panels and place the legend in the spare cells.
+parameter_legend_layout <- function(
+  plot, plot_data, plot_title, show_ess = FALSE
+) {
+  n_parameters <- length(parnames)
+  n_columns    <- 4L
+
+  panels <- lapply(seq_along(parnames), function(i) {
+    parameter <- parnames[i]
+
+    panel_data <- plot_data[
+      as.character(plot_data$Parameter) == parameter, ,
+      drop = FALSE
+    ]
+
+    # Show axis titles only on the left and bottom exposed panels.
+    left_column  <- (i - 1L) %% n_columns == 0L
+    bottom_panel <- i + n_columns > n_parameters
+
+    panel <- (plot + panel_data) +
+      ggplot2::labs(
+        title = parameter,
+        x     = if (bottom_panel) {
+          if (show_ess) "Lag" else "Iteration"
+        } else {
+          NULL
+        },
+        y = if (left_column) {
+          if (show_ess) "Autocorrelation" else "Parameter value"
+        } else {
+          NULL
+        }
+      )
+
+    if (show_ess) {
+      panel <- panel +
+        ggplot2::geom_text(
+          data = ess_labels[
+            ess_labels$Parameter == parameter, ,
+            drop = FALSE
+          ],
+          ggplot2::aes(label = Label),
+          x     = Inf, y = Inf,
+          hjust = 1.08, vjust = 1.3,
+          size  = 6,
+          inherit.aes = FALSE
+        )
+    }
+
+    panel
   })
 
-  # Display the shared legend inside the first calibration panel.
-  calibration_panels[[1]] <- calibration_panels[[1]] +
-    ggplot2::theme(
-      legend.position      = "inside",
-      legend.position.inside = c(0.98, 0.98),
-      legend.justification = c(1, 1),
-      legend.direction     = "vertical",
-      legend.background    = ggplot2::element_blank(),
-      legend.key.height    = grid::unit(0.35, "cm"),
-      legend.text          = ggplot2::element_text(size = 9)
-    )
-
-  calibration_panels[-1] <- lapply(
-    calibration_panels[-1],
-    function(panel) panel + ggplot2::theme(legend.position = "none")
+  n_cells     <- ceiling((n_parameters + 1L) / n_columns) * n_columns
+  panel_codes <- c(
+    LETTERS[seq_len(n_parameters)],
+    rep(LETTERS[n_parameters + 1L], n_cells - n_parameters)
   )
 
-  p_calibration <- patchwork::wrap_plots(
-    calibration_panels,
-    ncol = 2
-  ) +
-    patchwork::plot_annotation(
-      caption = paste(
-        "L6 is an inferred mean under a lognormal assumption;",
-        "its interval uses the working normal calibration approximation."
+  design <- paste(
+    vapply(seq.int(1L, n_cells, by = n_columns), function(i) {
+      paste0(
+        panel_codes[i:(i + n_columns - 1L)],
+        collapse = ""
       )
+    }, character(1)),
+    collapse = "\n"
+  )
+
+  combined <- patchwork::wrap_plots(
+    c(panels, list(patchwork::guide_area())),
+    design = design,
+    guides = "collect"
+  ) +
+    patchwork::plot_annotation(title = plot_title)
+
+  combined &
+    figure_text_theme &
+    ggplot2::theme(
+      legend.position  = "bottom",
+      legend.direction = "horizontal"
     )
+}
 
-  p_calibration <- p_calibration & figure_text_theme
+p_autocorrelation <- parameter_legend_layout(
+  p_autocorrelation,
+  autocorrelation_data,
+  "Autocorrelation of posterior parameter samples",
+  show_ess = TRUE
+)
 
-  print(p_calibration)
+p_trace <- parameter_legend_layout(
+  p_trace,
+  trace_data,
+  "Trace plots for the MCMC chains"
+)
 
-  filename <- "Supplementary_Fig6_model_fit.png"
+p_distribution <- p_distribution + figure_text_theme
+
+# Save the three diagnostic figures.
+calibration_figures <- list(
+  Supplementary_Fig3_MCMC_trace                            = p_trace,
+  Supplementary_Fig4_MCMC_autocorrelation = p_autocorrelation,
+  Supplementary_Fig5_calibrated_parameter_posteriors       = p_distribution
+)
+
+for (figure_name in names(calibration_figures)) {
+  figure <- calibration_figures[[figure_name]]
+  message("Rendering and saving: ", figure_name)
+
+  print(figure)
+
+  filename <- paste0(figure_name, ".png")
 
   ggplot2::ggsave(
     filename = file.path(save_dir, filename),
-    plot     = p_calibration,
+    plot     = figure,
     width    = 14,
     height   = 16,
     units    = "in",
@@ -3216,6 +3009,208 @@ if (settings$plot_calib) {
 
   message("Saved: ", filename)
 }
+
+model_data <- tb_calibration_results$calibration_plot_data
+model_data$Indicator <- sub(
+  "Mean system delay", "Mean health system delay", model_data$Indicator
+)
+if (is.null(model_data)) {
+  stop("The calibration results are missing cached model predictions.")
+}
+
+target_names <- c(
+  "L1: TB notifications",
+  "L2: Reported TB mortality",
+  "L3: IGRA positivity, age 5+",
+  "L4: Active TB prevalence, age 15+",
+  "L5: Subclinical TB proportion",
+  "L6: Mean health system delay",
+  "L7: Smear-positive TB proportion",
+  "L8: Active case-finding proportion"
+)
+target_units <- c(
+  "Rate per 100,000",
+  "Rate per 100,000",
+  "Proportion (%)",
+  "Prevalence per 100,000",
+  "Proportion (%)",
+  "Days",
+  "Proportion (%)",
+  "Proportion (%)"
+)
+
+if (!all(target_names %in% model_data$Indicator)) {
+  stop("Saved model indicator names do not match the plotting labels.")
+}
+
+# L1: assumed normal error intervals; L2: reported confidence intervals.
+# L3/L4/L5/L7: exact binomial confidence intervals.
+# L6: working normal interval for the inferred mean, not the reported IQR.
+
+notice_obs <- c(
+  106.64, 105.12, 99.69, 89.14, 81.94, 75.97, 73.76, 69.43,
+  68.08, 65.10, 61.67, 60.74, 59.38, 55.57, 47.58
+)
+mortality_obs <- c(7.03, 7.13, 5.43, 5.04, 4.04, 4.33, 4.38)
+mortality_lo  <- c(6.84, 6.93, 5.26, 4.88, 3.90, 4.19, 4.23)
+mortality_hi  <- c(7.23, 7.32, 5.60, 5.20, 4.18, 4.48, 4.52)
+
+# L8 is a working normal calibration target based on the national
+# estimate that approximately 3% of notifications were actively detected.
+
+acf_target <- 0.03
+acf_sd     <- 0.0015
+
+binomial_target <- function(indicator, years, counts, sizes, scale) {
+  intervals <- t(vapply(seq_along(counts), function(i) {
+    as.numeric(stats::binom.test(counts[i], sizes[i])$conf.int)
+  }, numeric(2)))
+
+  data.frame(
+    Year      = years,
+    Mean      = counts / sizes * scale,
+    Low       = intervals[, 1] * scale,
+    High      = intervals[, 2] * scale,
+    Indicator = indicator
+  )
+}
+
+target_data <- rbind(
+  data.frame(
+    Year      = 2006:2020, Mean = notice_obs,
+    Low       = notice_obs * (1 - 1.96 * 0.05),
+    High      = notice_obs * (1 + 1.96 * 0.05),
+    Indicator = target_names[1]
+  ),
+  data.frame(
+    Year      = 2004:2010, Mean = mortality_obs,
+    Low       = mortality_lo, High = mortality_hi,
+    Indicator = target_names[2]
+  ),
+  binomial_target(target_names[3], 2013, 3955, 21022, 100),
+  binomial_target(target_names[4], 2010, 1310, 252940, 1e5),
+  binomial_target(target_names[5], 2010, 561, 1301, 100),
+  data.frame(
+    Year      = 2019, Mean = 99.88,
+    Low       = 99.88 - 1.96 * 21.66,
+    High      = 99.88 + 1.96 * 21.66,
+    Indicator = target_names[6]
+  ),
+  binomial_target(
+    target_names[7], c(2000, 2010), c(447, 181), c(1340, 1310), 100
+  ),
+  data.frame(
+    Year      = 2023,
+    Mean      = acf_target * 100,
+    Low       = pmax(0, (acf_target - 1.96 * acf_sd) * 100),
+    High      = pmin(100, (acf_target + 1.96 * acf_sd) * 100),
+    Indicator = target_names[8]
+  )
+)
+
+message("Preparing model-fit plots from saved predictions...")
+calibration_panels <- lapply(seq_along(target_names), function(i) {
+  model    <- subset(model_data, Indicator == target_names[i])
+  observed <- subset(target_data, Indicator == target_names[i])
+
+  ggplot2::ggplot() +
+    ggplot2::geom_ribbon(
+      data = model,
+      ggplot2::aes(Year, ymin = Low, ymax = High),
+      fill = "#2878B5", alpha = 0.18
+    ) +
+    ggplot2::geom_line(
+      data = model,
+      ggplot2::aes(
+        Year, Mean,
+        colour = "Model mean (95% uncertainty interval)"
+      ),
+      linewidth = 0.7
+    ) +
+    ggplot2::geom_errorbar(
+      data = observed,
+      ggplot2::aes(
+        Year,
+        ymin   = Low, ymax = High,
+        colour = "Calibration targets"
+      ),
+      width = 0.5, linewidth = 0.4
+    ) +
+    ggplot2::geom_point(
+      data = observed,
+      ggplot2::aes(
+        Year, Mean,
+        colour = "Calibration targets"
+      ),
+      size = 2
+    ) +
+    ggplot2::scale_colour_manual(values = c(
+      "Model mean (95% uncertainty interval)" = "#2878B5",
+      "Calibration targets" = "#D9534F"
+    )) +
+    ggplot2::scale_x_continuous(
+      breaks = seq(2000, 2025, 5), limits = c(2000, 2025)
+    ) +
+    ggplot2::scale_y_continuous(
+      limits = c(0, NA),
+      expand = ggplot2::expansion(mult = c(0, 0.05))
+    ) +
+    ggplot2::labs(
+      x     = "Year", y = target_units[i],
+      title = target_names[i], colour = NULL
+    ) +
+    ggplot2::theme_bw(base_size = 10) +
+    ggplot2::theme(
+      plot.title       = ggplot2::element_text(size = 10),
+      panel.grid.minor = ggplot2::element_blank()
+    )
+})
+
+# Display the shared legend inside the first calibration panel.
+calibration_panels[[1]] <- calibration_panels[[1]] +
+  ggplot2::theme(
+    legend.position      = "inside",
+    legend.position.inside = c(0.98, 0.98),
+    legend.justification = c(1, 1),
+    legend.direction     = "vertical",
+    legend.background    = ggplot2::element_blank(),
+    legend.key.height    = grid::unit(0.35, "cm"),
+    legend.text          = ggplot2::element_text(size = 9)
+  )
+
+calibration_panels[-1] <- lapply(
+  calibration_panels[-1],
+  function(panel) panel + ggplot2::theme(legend.position = "none")
+)
+
+p_calibration <- patchwork::wrap_plots(
+  calibration_panels,
+  ncol = 2
+) +
+  patchwork::plot_annotation(
+    caption = paste(
+      "L6 is an inferred mean under a lognormal assumption;",
+      "its interval uses the working normal calibration approximation."
+    )
+  )
+
+p_calibration <- p_calibration & figure_text_theme
+
+print(p_calibration)
+
+filename <- "Supplementary_Fig6_model_fit.png"
+
+ggplot2::ggsave(
+  filename = file.path(save_dir, filename),
+  plot     = p_calibration,
+  width    = 14,
+  height   = 16,
+  units    = "in",
+  dpi      = 300,
+  bg       = "white"
+)
+
+message("Saved: ", filename)
 
 # ------------------------------------------------------------------------------
 # 3.3 Plot model predictions: Figure 1
