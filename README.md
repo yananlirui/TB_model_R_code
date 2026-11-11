@@ -53,6 +53,13 @@ Linux servers also need a working headless graphics device, such as Cairo.
 
 ## Running the script
 
+**Before running, [download the saved RDS results](https://github.com/yananlirui/TB_model_R_code/releases/download/v1.0.0/TB_results_seed2026_20261109.rds)
+and place the file in `output/`.** At approximately 295 MB, the RDS file exceeds
+GitHub's regular repository file-size limit and is provided as a Release
+attachment instead. If complete saved results are not found, the script reruns
+the calibration and analyses, which can take many hours. Downloading the RDS
+allows the script to reuse the saved results and regenerate tables and figures.
+
 From the directory containing the script:
 
 ```bash
