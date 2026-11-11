@@ -57,7 +57,7 @@ Linux servers also need a working headless graphics device, such as Cairo.
 and place the file in `output/`.** At approximately 295 MB, the RDS file exceeds
 GitHub's regular repository file-size limit and is provided as a Release
 attachment instead. If complete saved results are not found, the script reruns
-the calibration and analyses, which can take many hours. Downloading the RDS
+the calibration and analyses, which can take several days. Downloading the RDS
 allows the script to reuse the saved results and regenerate tables and figures.
 
 From the directory containing the script:
@@ -106,7 +106,7 @@ charged once when each additional hospital starts providing services.
 Parallel worker allocation is defined in section **1.4**. By default, the script
 uses the detected number of logical cores minus two, with a minimum of one worker.
 Reduce this budget manually on a shared server if necessary. A complete fresh run
-can take many hours; elapsed time depends on the hardware and available resources.
+can take several days; elapsed time depends on the hardware and available resources.
 
 ## Saved results and fresh runs
 

@@ -14,7 +14,7 @@
 # Run: Rscript TB_model_main.R, or source the saved script in a fresh R session.
 # Inputs are embedded below. Results, tables and figures are saved in output/.
 # The latest saved RDS for the selected seed is reused when results exist.
-# A fresh calibration can take many hours and uses parallel worker processes.
+# A fresh calibration can take several days and uses parallel worker processes.
 # See README.md for settings, dependencies and instructions for a fresh run.
 #
 # S0. Environment, run settings, parameters and optional resistance verification
@@ -161,7 +161,7 @@ run_all <- !identical(as.integer(model_results$seed), settings$seed) ||
   is.null(calibration_results[["0.5"]]) ||
   is.null(calibration_results[["1"]]) || is.null(model_results$analysis)
 tb_analysis_results <- if (run_all) NULL else model_results$analysis
-if (run_all) message("A full run is required and may take many hours.")
+if (run_all) message("A full run is required and may take several days.")
 
 # ------------------------------------------------------------------------------
 # 0.4 Model parameters
