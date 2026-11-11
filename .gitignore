@@ -1,0 +1,13 @@
+# Local working files and result backups
+output/process/
+output/*.docx
+output/~$*
+
+# Large saved results are distributed as release assets
+output/*.rds
+
+# R session files
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
