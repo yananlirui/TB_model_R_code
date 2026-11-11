@@ -97,7 +97,7 @@ The full workflow contains:
 
 Section **2.1** runs all five calibrations within a shared CPU budget, concurrently
 when sufficient cores are available and in smaller batches or serially otherwise.
-Sections **2.2–2.3** use these fitted results for the three complete analyses;
+Section **2.2** uses these fitted results for the three complete analyses;
 the best and worst analyses do not repeat calibration.
 
 Probabilistic sensitivity analyses use a general-hospital referral

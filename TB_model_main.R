@@ -2307,9 +2307,10 @@ cea_baseline <- tb_calibration_results$CEA_baseline
 base_par$p_igra_E <- selected_p_igra_e
 
 # ------------------------------------------------------------------------------
-# 2.2 Run model analysis
+# 2.2 Run primary, best and worst analyses
 # ------------------------------------------------------------------------------
 
+# Run the primary analysis using its fitted parameters.
 if (run_all) {
   message("Starting model analysis. This may take a long time.")
   tb_analysis_results <- run_analysis(
@@ -2322,9 +2323,7 @@ if (run_all) {
   message("Using saved model-analysis results.")
 }
 
-# ------------------------------------------------------------------------------
-# 2.3 Analyse best and worst care-engagement assumptions
-# ------------------------------------------------------------------------------
+# Run the best and worst analyses using their fitted parameters.
 care_cases <- c("best", "worst")
 missing_care <- care_cases[vapply(care_cases, function(case) {
   is.null(model_results$care[[case]]$analysis)
