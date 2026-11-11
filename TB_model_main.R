@@ -2017,7 +2017,7 @@ run_psa <- function(chain_posts, known_par_dist, plf2 = base_par$p_lf2,
 }
 
 # ------------------------------------------------------------------------------
-# 1.7 Complete analysis under one care-engagement assumption
+# 1.7 Analysis workflow
 # ------------------------------------------------------------------------------
 run_analysis <- function(calibration, base_par, par_ranges,
                          assumptions = "basecase") {
