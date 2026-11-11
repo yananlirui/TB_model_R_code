@@ -23,6 +23,7 @@ reaches approximately 14.5%.
 TB_model_R_code/
 ├── TB_model_main.R    # Model, calibration, analyses and output generation
 ├── README.md
+├── LICENSE           # MIT License for the model code and documentation
 └── output/           # Saved results, Excel workbook and figures
 ```
 
@@ -30,7 +31,8 @@ Model inputs and calibration observations are embedded in the script.
 
 ## Requirements
 
-The code has been checked with **R 4.6.1**. The package versions used are also
+The code has been checked with **R 4.6.1** on Windows 11 and Ubuntu 20.04.
+The package versions used are also
 listed in section 0.1 of the script:
 
 | Package | Version | Package | Version |
@@ -50,6 +52,12 @@ packages, so an initial installation requires internet access and a configured
 CRAN repository.
 Times New Roman should be installed for figures that request this font.
 Linux servers also need a working headless graphics device, such as Cairo.
+No specialised hardware is required. The workflow adapts parallel execution to
+the available logical cores; fewer cores increase computation time.
+
+With the listed packages already installed, no additional installation is needed.
+First-time package installation depends on internet speed and whether packages
+must be built from source; this installation time has not been benchmarked.
 
 ## Running the script
 
@@ -75,6 +83,13 @@ source("TB_model_main.R")
 Use a fresh R session: the script clears objects in the global environment.
 Output paths are resolved relative to the script, rather than the working
 directory. Close the output Excel workbook before regenerating it.
+
+For a short demonstration, download the RDS and run the script as above. This
+regenerates the Excel workbook and Figures 1-3 and Supplementary Figures 3-9.
+On the authors' Windows computer with R 4.6.1 and packages already installed,
+this saved-results workflow took approximately 50 seconds. This excludes the RDS
+download and initial package installation; timing varies by computer.
+Supplementary Figure 2 is generated separately using `verify_resistance = TRUE`.
 
 ## Settings and workflow
 
@@ -175,3 +190,8 @@ includes the export date and seed. Intermediate checkpoints are stored under
 | S1 | Population, model, calibration, CEA and sensitivity-analysis functions |
 | S2 | Calibration and analysis execution, diagnostics and checkpoints |
 | S3 | Excel tables and figures |
+
+## License
+
+The model source code and accompanying documentation are released under the
+[MIT License](LICENSE). R and third-party packages retain their own licenses.
