@@ -451,7 +451,7 @@ if (verify_resistance) {
     ), shape = 1, colour = "#B68B8B", size = 1.4, stroke = 0.25) +
     geom_line(
       data = resistance_curve, aes(x = year, y = fitted * 100),
-      colour = "#A8DDA0", linewidth = 0.5
+      colour = "#2878B5", linewidth = 0.5
     ) +
     scale_x_continuous(breaks = seq(2000, 2035, by = 5), expand = c(0, 0)) +
     scale_y_continuous(breaks = seq(0, 30, by = 5), expand = c(0, 0)) +
@@ -2780,7 +2780,7 @@ nchains      <- length(mcmc_chains)
 chain_labels <- paste("Chain", seq_len(nchains))
 chain_colors <- setNames(
   grDevices::colorRampPalette(
-    c("#2878B5", "#D9534F", "#39A77D", "#9467BD")
+    c("#0072B2", "#E69F00", "#8E44AD", "#666666")
   )(nchains),
   chain_labels
 )
@@ -3689,8 +3689,10 @@ plot_fig7_coverage <- function() {
       hjust = 0, nudge_x = 1, nudge_y = c(0, 0, -2),
       size = 3, family = "Times New Roman", show.legend = FALSE
     ) +
-    ggplot2::scale_colour_manual(values = c("blue", "red", "darkgreen")) +
-    ggplot2::scale_linetype_manual(values = c("solid", "dashed", "dashed")) +
+    ggplot2::scale_colour_manual(
+      values = c("#0072B2", "#D55E00", "#8E44AD")
+    ) +
+    ggplot2::scale_linetype_manual(values = c("solid", "longdash", "dotdash")) +
     ggplot2::scale_x_continuous(breaks = seq(0, 100, 10)) +
     ggplot2::scale_y_continuous(breaks = seq(0, 100, 10)) +
     ggplot2::coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
