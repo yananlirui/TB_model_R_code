@@ -142,9 +142,7 @@ The script selects the latest dated file matching the current seed:
 output/TB_results_seed2026_YYYYMMDD.rds
 ```
 
-If the three IGRA calibrations and primary analysis are present for that seed,
-they are reused. Missing best/worst calibration and analysis pairs are computed
-separately.
+Complete saved results are reused for the selected seed. Missing calibrations are scheduled together, subject to the available worker budget; analyses then use their corresponding calibrated parameters.
 Generating tables and figures from complete saved results does not rewrite the RDS.
 
 To recompute the entire workflow, use an empty `output/` directory after moving
