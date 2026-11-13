@@ -154,9 +154,12 @@ existing results somewhere safe, or choose a seed without a matching saved RDS.
   posterior samples, model predictions and cost-effectiveness outputs.
   [Download the RDS file](https://github.com/yananlirui/TB_model_R_code/releases/download/v1.1.0/TB_results_seed2026_20261112.rds)
   and save it in `output/`.
-- **Excel:** a dated workbook with seven sheets: `Table1`, `Table11`,
+- **Excel:** a dated workbook containing `Table1`, `Table11`,
   `Table12_Best`, `Table13_Worst`, `Calibration_diagnostics`, `CEA_baseline`
-  and `PSA_cea_final`.
+  and `PSA_cea_final`, followed by `Figure_data_index` and the source-data
+  sheets for Figures 1–3 and Supplementary Figures 8–9. Figure data include
+  plotted means and uncertainty intervals, CEA points, CEAC probabilities and
+  one-way sensitivity results. Calibration and MCMC source data remain in the RDS.
 - **Figures:** main Figures 1–3 show projected health outcomes, the
   cost-effectiveness plane and cost-effectiveness acceptability curves.
   Supplementary Figures 2–9 show the rifampicin-resistance trend, MCMC traces,

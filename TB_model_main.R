@@ -2803,9 +2803,6 @@ for (sheet in c("Table1", "Table11", "Table12_Best", "Table13_Worst")) {
     }
   }
 }
-openxlsx::saveWorkbook(excel_book, results_excel, overwrite = TRUE)
-
-message("Saved: ", results_excel)
 
 # ------------------------------------------------------------------------------
 # 3.2 Generate calibration figures: Supplementary Figures 3-6
@@ -3946,6 +3943,72 @@ ggplot2::ggsave(
   width = 7.5, height = 9.2, units = "in",
   dpi   = 300, bg = "white"
 )
+
+# ------------------------------------------------------------------------------
+# 3.7 Export source data for the figures
+# ------------------------------------------------------------------------------
+fig1_data <- do.call(rbind, lapply(seq_len(8), function(i) {
+  plot <- p_fig1_pred[[i]]
+  data.frame(
+    Panel = plot$labels$title, Unit = plot$labels$y,
+    plot$data[, c("Year", "Scenario", "Outcome", "Mean", "Low", "High")],
+    row.names = NULL
+  )
+}))
+fig1_targets <- do.call(rbind, lapply(c(1, 4), function(i) {
+  plot <- p_fig1_pred[[i]]
+  data.frame(Panel = plot$labels$title, Unit = plot$labels$y,
+             plot$layers[[3]]$data, row.names = NULL)
+}))
+care_probs <- c(0.60, 0.45, 0.30, 0.15)
+fig8_data <- do.call(rbind, lapply(seq_along(care_probs), function(i) {
+  psa <- list(psa_sen60, psa_sen45, psa_sen30, psa_sen15)[[i]]
+  data.frame(p_lf2 = care_probs[i],
+             psa$ceac_data[psa$ceac_data$wtp <= 15000, ])
+}))
+fig9_data <- do.call(rbind, lapply(names(usa_data), function(name) {
+  data.frame(Parameter = name, usa_data[[name]], row.names = NULL)
+}))
+fig9_top <- do.call(rbind, lapply(seq_len(3), function(i) {
+  data.frame(Coverage = c(50, 80, 100)[i], p_fig_s9_usa[[i]]$data)
+}))
+figure_sheets <- list(
+  Fig1_predictions = fig1_data,
+  Fig1_WHO_targets = fig1_targets,
+  Fig2_CEA_points = p_fig2_cea$data,
+  Fig3_CEAC = psa_base$ceac_data[psa_base$ceac_data$wtp <= 15000, ],
+  SuppFig8_CEAC = fig8_data,
+  SuppFig9_USA = fig9_data,
+  SuppFig9_top10 = fig9_top
+)
+figure_index <- data.frame(
+  Sheet = names(figure_sheets),
+  Rows = vapply(figure_sheets, nrow, integer(1)),
+  Note = c(
+    "Plotted units; mean and 95% UI, 2015-2035.",
+    "WHO target coordinates, in the units of each panel.",
+    "Incremental DALYs in millions; cost in US$ billions; ICER in US$/DALY.",
+    "WTP 0-15,000 US$/DALY; highest-NMB probability; GDP line at 13,445.",
+    "Four fixed loss-to-follow-up probabilities; GDP line at 13,445 US$/DALY.",
+    "All one-way sensitivity evaluations; ICER in US$/DALY.",
+    "Top 10 displayed parameters for each coverage scenario."
+  )
+)
+figure_sheets <- c(list(Figure_data_index = figure_index), figure_sheets)
+for (sheet in names(figure_sheets)) {
+  values <- figure_sheets[[sheet]]
+  openxlsx::addWorksheet(excel_book, sheet)
+  openxlsx::writeData(excel_book, sheet, values,
+    headerStyle = openxlsx::createStyle(textDecoration = "bold"))
+  openxlsx::freezePane(excel_book, sheet, firstRow = TRUE)
+  openxlsx::setColWidths(excel_book, sheet, seq_len(ncol(values)), 20)
+}
+openxlsx::setColWidths(excel_book, "Figure_data_index", 1, 30)
+openxlsx::setColWidths(excel_book, "Figure_data_index", 3, 90)
+openxlsx::setColWidths(excel_book, "Fig1_predictions", 1, 48)
+openxlsx::setColWidths(excel_book, "Fig1_WHO_targets", 1, 48)
+openxlsx::saveWorkbook(excel_book, results_excel, overwrite = TRUE)
+message("Saved tables and figure data: ", results_excel)
 
 # ==============================================================================
 
