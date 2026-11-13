@@ -45,7 +45,7 @@ listed in section 0.1 of the script:
 | parallel | 4.6.1 | patchwork | 1.3.2 |
 | pbapply | 1.7.5 | pracma | 2.4.6 |
 | rstudioapi | 0.19.0 | triangle | 1.1.0 |
-| writexl | 2.0.1 | | |
+| openxlsx | 4.2.9 | | |
 
 `grid` and `parallel` are included with R. The script attempts to install missing
 packages, so an initial installation requires internet access and a configured

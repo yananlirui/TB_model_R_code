@@ -38,7 +38,7 @@ start_time <- Sys.time()  # Record script start time for performance monitoring
 #   FME 1.3.6.4   | ggplot2 4.0.3   | grid 4.6.1        | gridExtra 2.3.1
 #   gtools 3.9.5  | lubridate 1.9.5 | parallel 4.6.1    | patchwork 1.3.2
 #   pbapply 1.7.5 | pracma 2.4.6    | rstudioapi 0.19.0 | triangle 1.1.0
-#   writexl 2.0.1
+#   openxlsx 4.2.9
 install_and_load <- function(package_name) {
   if (!require(package_name, character.only = TRUE)) {
     install.packages(package_name, dependencies = NA)
@@ -58,13 +58,13 @@ required_packages <- c(
   "gridExtra",   # Additional grid plotting utilities
   "gtools",      # Miscellaneous R utilities
   "lubridate",   # Date and time manipulation
+  "openxlsx",    # Export formatted Excel workbooks
   "parallel",    # Parallel computing
   "patchwork",   # Combine ggplot objects
   "pbapply",     # Progress bars for apply functions
   "pracma",      # Numerical methods and integration
   "rstudioapi",  # Locate scripts in RStudio
-  "triangle",    # Triangular distribution sampling
-  "writexl"      # Export Excel workbooks
+  "triangle"     # Triangular distribution sampling
 )
 invisible(lapply(required_packages, install_and_load))
 
@@ -2751,18 +2751,59 @@ care_tables <- list(
 
 psa_export <- psa_base$cea_final
 psa_export$Outcome <- sub("infection", "case", psa_export$Outcome, fixed = TRUE)
-writexl::write_xlsx(
-  c(
-    list(Table1 = table1, Table11 = table11),
-    care_tables,
-    calibration_sheets,
-    list(
-      CEA_baseline           = cea_baseline_table,
-      PSA_cea_final          = psa_export
-    )
-  ),
-  path = results_excel
+excel_sheets <- c(
+  list(Table1 = table1, Table11 = table11),
+  care_tables,
+  calibration_sheets,
+  list(
+    CEA_baseline           = cea_baseline_table,
+    PSA_cea_final          = psa_export
+  )
 )
+excel_book <- openxlsx::createWorkbook()
+for (sheet in names(excel_sheets)) {
+  openxlsx::addWorksheet(excel_book, sheet)
+  openxlsx::writeData(
+    excel_book, sheet, excel_sheets[[sheet]],
+    headerStyle = openxlsx::createStyle(textDecoration = "bold")
+  )
+}
+
+# Keep the manuscript tables readable on every export.
+for (sheet in c("Table1", "Table11", "Table12_Best", "Table13_Worst")) {
+  values <- excel_sheets[[sheet]]
+  rows <- seq_len(nrow(values) + 1L)
+  cols <- seq_len(ncol(values))
+  compact <- sheet == "Table11"
+  text_style <- openxlsx::createStyle(
+    fontName = "Times New Roman", fontSize = 11,
+    wrapText = TRUE, valign = "center"
+  )
+  bold_style <- openxlsx::createStyle(textDecoration = "bold")
+  openxlsx::addStyle(excel_book, sheet, text_style, rows, cols,
+                     gridExpand = TRUE)
+  openxlsx::addStyle(excel_book, sheet, bold_style, 1, cols,
+                     gridExpand = TRUE, stack = TRUE)
+  openxlsx::setColWidths(excel_book, sheet, 1, if (compact) 32 else 58)
+  openxlsx::setColWidths(excel_book, sheet, cols[-1],
+                         if (compact) 30 else 25)
+  openxlsx::setRowHeights(excel_book, sheet, rows,
+                          if (compact) 28 else 34)
+  openxlsx::setRowHeights(excel_book, sheet, 1, if (compact) 40 else 48)
+  for (i in seq_len(nrow(values))) {
+    if (!all(is.na(values[i, -1]) | values[i, -1] == "")) next
+    label <- as.character(values[i, 1])
+    if (is.na(label) || !nzchar(label)) next
+    if (!compact && nchar(label) >= 60L) {
+      openxlsx::mergeCells(excel_book, sheet, cols, i + 1L)
+      openxlsx::setRowHeights(excel_book, sheet, i + 1L, 30)
+    } else {
+      openxlsx::addStyle(excel_book, sheet, bold_style, i + 1L, cols,
+                         gridExpand = TRUE, stack = TRUE)
+    }
+  }
+}
+openxlsx::saveWorkbook(excel_book, results_excel, overwrite = TRUE)
 
 message("Saved: ", results_excel)
 
